@@ -1,41 +1,30 @@
-// Standard Vercel API route - Node.js runtime
-import Stripe from 'stripe';
+// The simplest possible Node.js API handler for Vercel
+const Stripe = require('stripe');
 
-// Explicitly set to use Node.js runtime
-export const config = {
-  runtime: 'nodejs',
-  api: {
-    bodyParser: true, // Enable body parsing
-  },
-};
-
-export default async function handler(req, res) {
-  // Handle CORS preflight requests
-  res.setHeader('Access-Control-Allow-Origin', 'https://justpeacheyrentals.com');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+// This is a standard Node.js serverless function format for Vercel
+module.exports = async (req, res) => {
+  // CORS headers are now handled by vercel.json
   
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Only allow POST requests
+  // Validate request method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+  
+  // Validate environment variable
   if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('STRIPE_SECRET_KEY is not defined');
+    console.error('Missing STRIPE_SECRET_KEY environment variable');
     return res.status(500).json({ error: 'Server configuration error' });
   }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   
   try {
+    // Initialize Stripe
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    
+    // Get data from request body
     const { total, checkin, checkout } = req.body;
+    console.log('Request data:', { total, checkin, checkout });
     
-    console.log('Creating checkout session with:', { total, checkin, checkout });
-    
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -55,10 +44,11 @@ export default async function handler(req, res) {
       cancel_url: 'https://justpeacheyrentals.com/cancel',
     });
     
-    console.log('Session created:', session.url);
+    // Return session URL
     return res.status(200).json({ url: session.url });
   } catch (error) {
-    console.error('Error creating Stripe session:', error.message, error.stack);
-    return res.status(500).json({ error: error.message });
+    // Handle errors
+    console.error('Stripe error:', error.message);
+    return res.status(500).json({ error: 'Failed to create checkout session' });
   }
 }
