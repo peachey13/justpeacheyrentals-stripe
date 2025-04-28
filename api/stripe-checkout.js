@@ -1,23 +1,34 @@
-// Minimal API handler in a new file path
 const Stripe = require('stripe');
 
-// Basic Node.js API handler
-module.exports = async (req, res) => {
-  // CORS headers - keeping these in the code for simplicity
-  res.setHeader('Access-Control-Allow-Origin', 'https://justpeacheyrentals.com');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+exports.handler = async (event, context) => {
+  // CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: '',
+    };
   }
-  
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
   try {
-    // Basic Stripe integration
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const { total, checkin, checkout } = req.body;
-    
+    const { total, checkin, checkout } = JSON.parse(event.body);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -36,10 +47,19 @@ module.exports = async (req, res) => {
       success_url: 'https://justpeacheyrentals.com/success',
       cancel_url: 'https://justpeacheyrentals.com/cancel',
     });
-    
-    return res.status(200).json({ url: session.url });
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ url: session.url }),
+    };
+
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Stripe session creation failed:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message }),
+    };
   }
-}
+};
