@@ -1,33 +1,20 @@
-export const config = {
-  runtime: 'edge',
-};
-
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-export default async function handler(req) {
+module.exports = async function (req, res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://justpeacheyrentals.com');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        'Content-Type': 'application/json',
-      },
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { total, checkin, checkout } = await req.json();
+    const { total, checkin, checkout } = req.body;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -46,24 +33,9 @@ export default async function handler(req) {
       cancel_url: 'https://justpeacheyrentals.com/cancel',
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        'Content-Type': 'application/json',
-      },
-    });
+    return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error('Stripe checkout session failed:', err);
-
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-      status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        'Content-Type': 'application/json',
-      },
-    });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
-
-
