@@ -1,7 +1,5 @@
-const fetch = require('node-fetch');
-
 module.exports = async (req, res) => {
-  // Add CORS headers
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', 'https://justpeacheyrentals.com');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,6 +15,8 @@ module.exports = async (req, res) => {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
   try {
+    const { total, checkin, checkout } = req.body;
+
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
       headers: {
@@ -29,8 +29,8 @@ module.exports = async (req, res) => {
         'payment_method_types[]': 'card',
         'mode': 'payment',
         'line_items[0][price_data][currency]': 'usd',
-        'line_items[0][price_data][product_data][name]': `Booking from ${req.body.checkin} to ${req.body.checkout}`,
-        'line_items[0][price_data][unit_amount]': Math.round(req.body.total * 100).toString(),
+        'line_items[0][price_data][product_data][name]': `Booking from ${checkin} to ${checkout}`,
+        'line_items[0][price_data][unit_amount]': Math.round(total * 100).toString(),
         'line_items[0][quantity]': '1'
       }).toString()
     });
@@ -43,6 +43,7 @@ module.exports = async (req, res) => {
       console.error('Stripe session creation failed', stripeData);
       res.status(500).json({ error: 'Failed to create Stripe checkout session.' });
     }
+
   } catch (error) {
     console.error('Error creating Stripe session:', error.message);
     res.status(500).json({ error: error.message });
