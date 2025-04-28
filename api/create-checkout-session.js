@@ -1,85 +1,48 @@
-// Edge API route with Edge Runtime
-export const config = {
-  runtime: 'edge',
-};
+// Standard Vercel API route
+import Stripe from 'stripe';
 
-export default async function handler(request) {
+export default async function handler(req, res) {
   // Handle CORS preflight requests
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+  res.setHeader('Access-Control-Allow-Origin', 'https://justpeacheyrentals.com');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
   // Only allow POST requests
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-      },
-    });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   
   try {
-    // Parse request body
-    const requestData = await request.json();
-    const { total, checkin, checkout } = requestData;
+    const { total, checkin, checkout } = req.body;
     
-    const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${stripeSecretKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        'success_url': 'https://justpeacheyrentals.com/success',
-        'cancel_url': 'https://justpeacheyrentals.com/cancel',
-        'payment_method_types[]': 'card',
-        'mode': 'payment',
-        'line_items[0][price_data][currency]': 'usd',
-        'line_items[0][price_data][product_data][name]': `Booking from ${checkin} to ${checkout}`,
-        'line_items[0][price_data][unit_amount]': Math.round(total * 100).toString(),
-        'line_items[0][quantity]': '1'
-      }).toString()
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `Booking from ${checkin} to ${checkout}`,
+            },
+            unit_amount: Math.round(total * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: 'https://justpeacheyrentals.com/success',
+      cancel_url: 'https://justpeacheyrentals.com/cancel',
     });
     
-    const stripeData = await stripeResponse.json();
-    
-    if (stripeData.url) {
-      return new Response(JSON.stringify({ url: stripeData.url }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        },
-      });
-    } else {
-      console.error('Stripe session creation failed', stripeData);
-      return new Response(JSON.stringify({ error: 'Failed to create Stripe checkout session.' }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-        },
-      });
-    }
+    res.status(200).json({ url: session.url });
   } catch (error) {
     console.error('Error creating Stripe session:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
-      },
-    });
+    res.status(500).json({ error: error.message });
   }
 }
