@@ -1,22 +1,33 @@
+export const config = {
+  runtime: 'edge',
+};
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-export default async function handler(req, res) {
+export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return res.status(200).setHeader('Access-Control-Allow-Origin', '*')
-      .setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-      .setHeader('Access-Control-Allow-Headers', 'Content-Type')
-      .end();
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).setHeader('Access-Control-Allow-Origin', '*')
-      .setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-      .setHeader('Access-Control-Allow-Headers', 'Content-Type')
-      .json({ error: 'Method not allowed' });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   try {
-    const { total, checkin, checkout } = req.body;
+    const { total, checkin, checkout } = await req.json();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -35,18 +46,24 @@ export default async function handler(req, res) {
       cancel_url: 'https://justpeacheyrentals.com/cancel',
     });
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    return res.status(200).json({ url: session.url });
-
+    return new Response(JSON.stringify({ url: session.url }), {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (err) {
     console.error('Stripe checkout session failed:', err);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(500).json({ error: 'Internal Server Error' });
+
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
+
 
