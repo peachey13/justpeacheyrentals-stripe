@@ -1,19 +1,18 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
-  // Set CORS headers first
-  res.setHeader('Access-Control-Allow-Origin', 'https://justpeacheyrentals.com');
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*'); // TEMPORARY for testing. (I'll explain below)
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    // Handle preflight request
     res.status(200).end();
     return;
   }
 
   if (req.method !== 'POST') {
-    res.status(405).send({ error: 'Method not allowed' });
+    res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
@@ -28,7 +27,7 @@ export default async function handler(req, res) {
           product_data: {
             name: `Booking from ${checkin} to ${checkout}`,
           },
-          unit_amount: parseInt(total * 100), // Stripe expects cents
+          unit_amount: parseInt(total * 100),
         },
         quantity: 1,
       }],
@@ -39,7 +38,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Stripe checkout session failed' });
+    console.error('Stripe checkout session failed:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 }
