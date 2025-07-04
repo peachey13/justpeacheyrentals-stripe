@@ -2,7 +2,7 @@ const Stripe = require('stripe');
 
 exports.handler = async (event, context) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Revert to 'https://justpeacheyrentals.com' after confirming
+    'Access-Control-Allow-Origin': '*', // Revert to correct domain after confirming
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
