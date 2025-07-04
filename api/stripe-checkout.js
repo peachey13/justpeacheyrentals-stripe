@@ -1,14 +1,21 @@
 const Stripe = require('stripe');
 
 exports.handler = async (event, context) => {
-  // CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+    'Access-Control-Allow-Origin': '*', // Revert to 'https://justpeacheyrentals.com' after confirming
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 
+  console.log('Received event:', {
+    httpMethod: event.httpMethod,
+    headers: event.headers,
+    body: event.body,
+    origin: event.headers.origin || 'Not provided'
+  });
+
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Handling OPTIONS preflight request');
     return {
       statusCode: 200,
       headers,
@@ -17,6 +24,7 @@ exports.handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'POST') {
+    console.error('Invalid HTTP method:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
@@ -25,7 +33,6 @@ exports.handler = async (event, context) => {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  console.log('Received event:', event);
 
   try {
     const { total, checkin, checkout, promoCode, promoCodeId } = JSON.parse(event.body);
