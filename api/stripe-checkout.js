@@ -25,9 +25,34 @@ exports.handler = async (event, context) => {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  console.log('Received event:', event);
 
   try {
-    const { total, checkin, checkout } = JSON.parse(event.body);
+    const { total, checkin, checkout, promoCode, promoCodeId } = JSON.parse(event.body);
+
+    if (!total || !checkin || !checkout) {
+      console.error('Missing required fields:', { total, checkin, checkout });
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required fields: ' +
+            (!total ? 'total ' : '') +
+            (!checkin ? 'checkin ' : '') +
+            (!checkout ? 'checkout' : '')
+        })
+      };
+    }
+
+    const adjustedTotal = parseFloat(total);
+    if (isNaN(adjustedTotal) || adjustedTotal < 0) {
+      console.error('Invalid total amount:', total);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid total amount' })
+      };
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -36,9 +61,9 @@ exports.handler = async (event, context) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Booking from ${checkin} to ${checkout}`,
+              name: `Booking from ${checkin} to ${checkout}${promoCode ? `, Promo: ${promoCode}` : ''}`,
             },
-            unit_amount: Math.round(total * 100),
+            unit_amount: Math.round(adjustedTotal * 100),
           },
           quantity: 1,
         },
@@ -46,20 +71,25 @@ exports.handler = async (event, context) => {
       mode: 'payment',
       success_url: 'https://justpeacheyrentals.com/success',
       cancel_url: 'https://justpeacheyrentals.com/cancel',
+      ...(promoCodeId && { promotion_code: promoCodeId })
     });
 
+    console.log('Checkout session created:', session.id);
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ url: session.url }),
+      body: JSON.stringify({
+        url: session.url,
+        adjusted_total: adjustedTotal,
+        promoCode: promoCode || null
+      })
     };
-
   } catch (error) {
     console.error('Stripe session creation failed:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ error: error.message })
     };
   }
 };
