@@ -140,7 +140,7 @@ exports.handler = async (event, context) => {
         },
       ],
       mode: 'payment',
-      success_url: 'https://justpeacheyrentals.com/success',
+      success_url: 'https://justpeacheyrentals.com/success?session_id={CHECKOUT_SESSION_ID}',
       cancel_url: 'https://justpeacheyrentals.com/cancel',
       metadata: {
         checkin: checkin,
