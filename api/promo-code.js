@@ -2,17 +2,22 @@ const Stripe = require('stripe');
 
 exports.handler = async function (event, context) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  console.log('Received event:', event);
+  console.log('Received event:', {
+    httpMethod: event.httpMethod,
+    headers: event.headers,
+    body: event.body
+  });
 
-  // CORS headers matching stripe-checkout.js
+  // CORS headers (temporarily allow all origins for debugging)
   const headers = {
-    'Access-Control-Allow-Origin': 'https://justpeacheyrentals.com',
+    'Access-Control-Allow-Origin': '*', // Change to 'https://justpeacheyrentals.com' after confirming fix
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   };
 
   // Handle OPTIONS preflight request
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Handling OPTIONS preflight request');
     return {
       statusCode: 200,
       headers,
@@ -55,6 +60,7 @@ exports.handler = async function (event, context) {
     }
 
     const { total, promoCode } = requestBody;
+    console.log('Parsed request body:', { total, promoCode });
 
     // Validate required fields
     if (!total) {
