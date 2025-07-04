@@ -5,12 +5,13 @@ exports.handler = async function (event, context) {
   console.log('Received event:', {
     httpMethod: event.httpMethod,
     headers: event.headers,
-    body: event.body
+    body: event.body,
+    origin: event.headers.origin || 'Not provided'
   });
 
-  // CORS headers (temporarily allow all origins for debugging)
+  // CORS headers (allow all origins for debugging)
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Change to 'https://justpeacheyrentals.com' after confirming fix
+    'Access-Control-Allow-Origin': '*', // Revert to 'https://justpeacheyrentals.com' or correct domain after confirming
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   };
