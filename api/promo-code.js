@@ -11,7 +11,7 @@ exports.handler = async function (event, context) {
 
   // CORS headers (allow all origins for debugging)
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Revert to 'https://justpeacheyrentals.com' or correct domain after confirming
+    'Access-Control-Allow-Origin': '*', // Revert to correct domain after confirming
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   };
