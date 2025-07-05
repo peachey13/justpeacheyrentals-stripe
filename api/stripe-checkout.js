@@ -1,4 +1,70 @@
-const Stripe = require('stripe');
+try {
+    // Check for request body
+    if (!event.body) {
+      console.error('No request body provided');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No request body provided' })
+      };
+    }
+
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = JSON.parse(event.body);
+    } catch (parseError) {
+      console.error('Invalid JSON in request body:', event.body, parseError);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid JSON in request body' })
+      };
+    }
+
+    const { total, checkin, checkout, promoCode, promoCodeId, customerEmail } = requestBody;
+    
+    console.log('Parsed checkout request:', { 
+      total, 
+      checkin, 
+      checkout, 
+      promoCode: promoCode || 'None',
+      promoCodeId: promoCodeId || 'None',
+      customerEmail: customerEmail || 'Not provided (optional)'
+    });
+
+    // Validate required fields (customerEmail is optional)
+    if (!total || !checkin || !checkout) {
+      console.error('Missing required fields:', { total, checkin, checkout });
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required fields: ' +
+            (!total ? 'total ' : '') +
+            (!checkin ? 'checkin ' : '') +
+            (!checkout ? 'checkout' : '')
+        })
+      };
+    }
+
+    // Validate total amount
+    const adjustedTotal = parseFloat(total);
+    if (isNaN(adjustedTotal) || adjustedTotal < 0) {
+      console.error('Invalid total amount:', total);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid total amount' })
+      };
+    }
+
+    // Server-side price validation
+    try {
+      console.log('Validating price for dates:', checkin, 'to', checkout);
+      
+      // Fetch rates from your pricing API (same as frontend)
+      const rconst Stripe = require('stripe');
 
 exports.handler = async (event, context) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -70,10 +136,10 @@ exports.handler = async (event, context) => {
       checkout, 
       promoCode: promoCode || 'None',
       promoCodeId: promoCodeId || 'None',
-      customerEmail: customerEmail || 'Not provided'
+      customerEmail: customerEmail || 'Not provided (optional)'
     });
 
-    // Validate required fields
+    // Validate required fields (customerEmail is optional)
     if (!total || !checkin || !checkout) {
       console.error('Missing required fields:', { total, checkin, checkout });
       return {
