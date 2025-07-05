@@ -126,7 +126,6 @@ exports.handler = async (event, context) => {
     // Create Stripe checkout session
     const sessionConfig = {
       payment_method_types: ['card'],
-      customer_creation: 'always', // Always create customer
       line_items: [
         {
           price_data: {
@@ -152,45 +151,18 @@ exports.handler = async (event, context) => {
       }
     };
 
-    // Only add promotion code if we have a valid promoCodeId and it's not empty
-    if (promoCodeId && promoCodeId.trim() !== '' && promoCodeId !== 'undefined') {
-      console.log('Attempting to add promotion code to session:', promoCodeId);
-      
-      try {
-        // Verify the promotion code exists and is active before adding it
-        const promotionCode = await stripe.promotionCodes.retrieve(promoCodeId);
-        
-        if (promotionCode && promotionCode.active) {
-          // Check if promotion code is expired
-          if (!promotionCode.expires_at || promotionCode.expires_at * 1000 > Date.now()) {
-            sessionConfig.discounts = [{
-              promotion_code: promoCodeId
-            }];
-            console.log('Successfully added promotion code:', promotionCode.code);
-          } else {
-            console.log('Promotion code is expired, proceeding without discount');
-          }
-        } else {
-          console.log('Promotion code is inactive, proceeding without discount');
-        }
-      } catch (promoError) {
-        console.error('Error verifying promotion code:', {
-          message: promoError.message,
-          type: promoError.type,
-          code: promoError.code
-        });
-        console.log('Proceeding without promotion code due to verification error');
-        // Continue without the promo code instead of failing the entire checkout
-      }
-    } else {
-      console.log('No valid promotion code provided, proceeding without discount');
+    // Add promotion code if provided
+    if (promoCodeId) {
+      console.log('Adding promotion code to session:', promoCodeId);
+      sessionConfig.discounts = [{
+        promotion_code: promoCodeId
+      }];
     }
 
     console.log('Creating Stripe checkout session with config:', {
       amount: Math.round(adjustedTotal * 100),
       productName,
-      hasPromoCode: !!promoCodeId,
-      hasDiscounts: !!sessionConfig.discounts
+      hasPromoCode: !!promoCodeId
     });
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
@@ -227,7 +199,7 @@ exports.handler = async (event, context) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({ 
-          error: `Invalid request to payment processor: ${error.message}`,
+          error: 'Invalid request to payment processor',
           success: false 
         })
       };
