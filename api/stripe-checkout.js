@@ -62,14 +62,15 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { total, checkin, checkout, promoCode, promoCodeId } = requestBody;
+    const { total, checkin, checkout, promoCode, promoCodeId, customerEmail } = requestBody;
     
     console.log('Parsed checkout request:', { 
       total, 
       checkin, 
       checkout, 
       promoCode: promoCode || 'None',
-      promoCodeId: promoCodeId || 'None'
+      promoCodeId: promoCodeId || 'None',
+      customerEmail: customerEmail || 'Not provided'
     });
 
     // Validate required fields
@@ -126,6 +127,8 @@ exports.handler = async (event, context) => {
     // Create Stripe checkout session
     const sessionConfig = {
       payment_method_types: ['card'],
+      customer_creation: 'always', // Always create customer
+      customer_email: null, // Let customer enter email
       line_items: [
         {
           price_data: {
@@ -147,7 +150,8 @@ exports.handler = async (event, context) => {
         checkout: checkout,
         original_total: total.toString(),
         promo_code: promoCode || '',
-        promo_code_id: promoCodeId || ''
+        promo_code_id: promoCodeId || '',
+        booking_email: customerEmail || '' // Store original booking email
       }
     };
 
