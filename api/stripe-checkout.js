@@ -58,7 +58,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { total, checkin, checkout, promoCode, promoCodeId, email } = requestBody;
+    const { total, checkin, checkout, promoCode, promoCodeId, booking_email } = requestBody;
     
     console.log('Parsed checkout request:', { 
       total, 
@@ -66,11 +66,12 @@ exports.handler = async (event, context) => {
       checkout, 
       promoCode: promoCode || 'None',
       promoCodeId: promoCodeId || 'None',
-      email: email || 'None'
+      booking_email: booking_email || 'None'
     });
 
-    if (!total || !checkin || !checkout) {
-      console.error('Missing required fields:', { total, checkin, checkout });
+    // Validate required fields
+    if (!total || !checkin || !checkout || !booking_email) {
+      console.error('Missing required fields:', { total, checkin, checkout, booking_email });
       return {
         statusCode: 400,
         headers,
@@ -78,7 +79,8 @@ exports.handler = async (event, context) => {
           error: 'Missing required fields: ' +
             (!total ? 'total ' : '') +
             (!checkin ? 'checkin ' : '') +
-            (!checkout ? 'checkout' : '')
+            (!checkout ? 'checkout ' : '') +
+            (!booking_email ? 'booking_email' : '')
         })
       };
     }
@@ -112,6 +114,17 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Validate email format (basic check)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(booking_email)) {
+      console.error('Invalid email format:', booking_email);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid email format' })
+      };
+    }
+
     const promoText = promoCode ? `, Promo: ${promoCode}` : '';
     const productName = `Booking from ${checkin} to ${checkout}${promoText}`;
 
@@ -131,13 +144,13 @@ exports.handler = async (event, context) => {
         }
       ],
       mode: 'payment',
-      success_url: 'https://justpeacheyrentals.com/success?session_id={CHECKOUT_SESSION_ID}',
+      success_url: `https://justpeacheyrentals.com/success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(booking_email)}`,
       cancel_url: 'https://justpeacheyrentals.com/cancel',
       metadata: {
-        checkin: checkin,
-        checkout: checkout,
+        checkin,
+        checkout,
         original_total: total.toString(),
-        stripe_email: email || '',
+        booking_email,
         promo_code: promoCode || '',
         promo_code_id: promoCodeId || ''
       }
