@@ -10,22 +10,20 @@ exports.handler = async (event, context) => {
     origin: event.headers.origin || 'Not provided'
   });
 
-  // Enhanced CORS headers to match promo code handler
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
+    'Access-Control-Max-Age': '86400',
     'Content-Type': 'application/json'
   };
 
-  // Handle OPTIONS preflight request
   if (event.httpMethod === 'OPTIONS') {
     console.log('Handling OPTIONS preflight request');
     return {
       statusCode: 200,
       headers,
-      body: '',
+      body: ''
     };
   }
 
@@ -34,12 +32,11 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
+      body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
-    // Check for request body
     if (!event.body) {
       console.error('No request body provided');
       return {
@@ -49,7 +46,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Parse request body
     let requestBody;
     try {
       requestBody = JSON.parse(event.body);
@@ -62,17 +58,17 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { total, checkin, checkout, promoCode, promoCodeId } = requestBody;
+    const { total, checkin, checkout, promoCode, promoCodeId, email } = requestBody;
     
     console.log('Parsed checkout request:', { 
       total, 
       checkin, 
       checkout, 
       promoCode: promoCode || 'None',
-      promoCodeId: promoCodeId || 'None'
+      promoCodeId: promoCodeId || 'None',
+      email: email || 'None'
     });
 
-    // Validate required fields
     if (!total || !checkin || !checkout) {
       console.error('Missing required fields:', { total, checkin, checkout });
       return {
@@ -87,7 +83,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Validate total amount
     const adjustedTotal = parseFloat(total);
     if (isNaN(adjustedTotal) || adjustedTotal < 0) {
       console.error('Invalid total amount:', total);
@@ -98,7 +93,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Validate date format (basic check)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(checkin) || !dateRegex.test(checkout)) {
       console.error('Invalid date format:', { checkin, checkout });
@@ -109,7 +103,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Validate checkout is after checkin
     if (new Date(checkout) <= new Date(checkin)) {
       console.error('Checkout date must be after checkin date:', { checkin, checkout });
       return {
@@ -119,11 +112,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Create line item description
     const promoText = promoCode ? `, Promo: ${promoCode}` : '';
     const productName = `Booking from ${checkin} to ${checkout}${promoText}`;
 
-    // Create Stripe checkout session
     const sessionConfig = {
       payment_method_types: ['card'],
       line_items: [
@@ -134,10 +125,10 @@ exports.handler = async (event, context) => {
               name: productName,
               description: `Just Peachey Rentals - ${checkin} to ${checkout}`
             },
-            unit_amount: Math.round(adjustedTotal * 100), // Convert to cents
+            unit_amount: Math.round(adjustedTotal * 100)
           },
-          quantity: 1,
-        },
+          quantity: 1
+        }
       ],
       mode: 'payment',
       success_url: 'https://justpeacheyrentals.com/success?session_id={CHECKOUT_SESSION_ID}',
@@ -146,12 +137,12 @@ exports.handler = async (event, context) => {
         checkin: checkin,
         checkout: checkout,
         original_total: total.toString(),
+        stripe_email: email || '',
         promo_code: promoCode || '',
         promo_code_id: promoCodeId || ''
       }
     };
 
-    // Add promotion code if provided
     if (promoCodeId) {
       console.log('Adding promotion code to session:', promoCodeId);
       sessionConfig.discounts = [{
@@ -184,7 +175,6 @@ exports.handler = async (event, context) => {
         success: true
       })
     };
-
   } catch (error) {
     console.error('Stripe session creation failed:', {
       message: error.message,
@@ -193,7 +183,6 @@ exports.handler = async (event, context) => {
       stack: error.stack
     });
 
-    // Handle specific Stripe errors
     if (error.type === 'StripeInvalidRequestError') {
       return {
         statusCode: 400,
