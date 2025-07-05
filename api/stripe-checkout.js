@@ -62,15 +62,14 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { total, checkin, checkout, promoCode, promoCodeId, customerEmail } = requestBody;
+    const { total, checkin, checkout, promoCode, promoCodeId } = requestBody;
     
     console.log('Parsed checkout request:', { 
       total, 
       checkin, 
       checkout, 
       promoCode: promoCode || 'None',
-      promoCodeId: promoCodeId || 'None',
-      customerEmail: customerEmail || 'Not provided'
+      promoCodeId: promoCodeId || 'None'
     });
 
     // Validate required fields
@@ -150,8 +149,7 @@ exports.handler = async (event, context) => {
         checkout: checkout,
         original_total: total.toString(),
         promo_code: promoCode || '',
-        promo_code_id: promoCodeId || '',
-        booking_email: customerEmail || '' // Store original booking email
+        promo_code_id: promoCodeId || ''
       }
     };
 
