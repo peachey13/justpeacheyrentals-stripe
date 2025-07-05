@@ -22,18 +22,17 @@ try {
       };
     }
 
-    const { total, checkin, checkout, promoCode, promoCodeId, customerEmail } = requestBody;
+    const { total, checkin, checkout, promoCode, promoCodeId } = requestBody;
     
     console.log('Parsed checkout request:', { 
       total, 
       checkin, 
       checkout, 
       promoCode: promoCode || 'None',
-      promoCodeId: promoCodeId || 'None',
-      customerEmail: customerEmail || 'Not provided (optional)'
+      promoCodeId: promoCodeId || 'None'
     });
 
-    // Validate required fields (customerEmail is optional)
+    // Validate required fields
     if (!total || !checkin || !checkout) {
       console.error('Missing required fields:', { total, checkin, checkout });
       return {
