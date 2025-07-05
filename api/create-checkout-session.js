@@ -4,7 +4,7 @@ const Stripe = require('stripe');
 // This is a standard Node.js serverless function format for Vercel
 module.exports = async (req, res) => {
   // CORS headers are now handled by vercel.json
-  
+   
   // Validate request method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
