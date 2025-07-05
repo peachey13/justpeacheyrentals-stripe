@@ -127,7 +127,6 @@ exports.handler = async (event, context) => {
     const sessionConfig = {
       payment_method_types: ['card'],
       customer_creation: 'always', // Always create customer
-      customer_email: null, // Let customer enter email
       line_items: [
         {
           price_data: {
