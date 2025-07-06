@@ -5,7 +5,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
-  
+    
   const data = JSON.parse(event.body);
   const { email, contact_name, contact_id } = data;
   
